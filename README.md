@@ -1,23 +1,25 @@
-# LiveKit AI Voice Agent — Starter Kit
+﻿# LiveKit AI Voice Agent — Clinic Appointment Assistant
 
-A minimal, well-commented real-time AI voice agent built on [LiveKit Agents](https://docs.livekit.io/agents/).  
-Use it as a starting point and layer in your own tools, personas, and integrations.
+A fully conversational real-time voice agent named **Clara** built on [LiveKit Agents](https://docs.livekit.io/agents/).  
+Clara acts as a clinic receptionist and handles end-to-end patient interactions entirely by voice.
 
 ```
-Microphone → VAD → STT (Deepgram) → LLM (OpenAI) → TTS (OpenAI) → Speaker
-              ↑
-         Silero VAD
+Microphone -> VAD (Silero) -> STT (Deepgram) -> LLM (OpenAI gpt-4o-mini) -> TTS (OpenAI nova) -> Speaker
 ```
 
 ---
 
-## Features
+## What Clara can do
 
-- **Real-time voice pipeline** — VAD → STT → LLM → TTS in one loop
-- **Function/tool calling** — the LLM can call Python functions (e.g. `get_current_time`) mid-conversation
-- **Structured logging** — timestamped logs for every session event
-- **Swap-friendly** — STT model, LLM model, and TTS voice are constants at the top of `agent.py`
-- **Commented placeholders** — weather, web-search, and RAG stubs ready to fill in
+| Capability | What to say |
+|---|---|
+| **Register** a new patient | "I'd like to register" / "Sign me up" |
+| **Book** an appointment | "I need an appointment" / "Book me with Dr. Smith" |
+| **View** appointments | "What appointments do I have?" |
+| **Reschedule** an appointment | "Move my appointment to Friday at 3 PM" |
+| **Cancel** an appointment | "Cancel my appointment ID A3F9B2C1" |
+
+All data is stored in `data.json` (auto-created, no database needed).
 
 ---
 
@@ -26,9 +28,9 @@ Microphone → VAD → STT (Deepgram) → LLM (OpenAI) → TTS (OpenAI) → Spea
 | Requirement | Where to get it |
 |---|---|
 | Python 3.10+ | [python.org](https://www.python.org/downloads/) |
-| LiveKit project | [cloud.livekit.io](https://cloud.livekit.io) → free tier available |
+| LiveKit project | [cloud.livekit.io](https://cloud.livekit.io) — free tier available |
 | OpenAI API key | [platform.openai.com](https://platform.openai.com/api-keys) |
-| Deepgram API key | [console.deepgram.com](https://console.deepgram.com) → free tier available |
+| Deepgram API key | [console.deepgram.com](https://console.deepgram.com) — free tier available |
 
 ---
 
@@ -38,60 +40,102 @@ Microphone → VAD → STT (Deepgram) → LLM (OpenAI) → TTS (OpenAI) → Spea
 # 1. Clone / open the project
 cd livekit-ai-voice-agent
 
-# 2. Create and activate a virtual environment (recommended)
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# macOS / Linux
-source .venv/bin/activate
-
-# 3. Install dependencies
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 4. Configure credentials
-copy .env.example .env      # Windows
-# cp .env.example .env      # macOS / Linux
-# Then open .env and fill in your keys
+# 3. Configure environment
+cp .env.example .env
+# Fill in LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, OPENAI_API_KEY, DEEPGRAM_API_KEY
 ```
-
-### `.env` variables
-
-| Variable | Description |
-|---|---|
-| `LIVEKIT_URL` | WebSocket URL of your LiveKit server, e.g. `wss://my-project.livekit.cloud` |
-| `LIVEKIT_API_KEY` | LiveKit project API key |
-| `LIVEKIT_API_SECRET` | LiveKit project API secret |
-| `OPENAI_API_KEY` | Used for both the LLM (GPT-4o-mini) and TTS |
-| `DEEPGRAM_API_KEY` | Used for speech-to-text (Nova 3) |
 
 ---
 
 ## Running the agent
 
-### Option A — One-command console (recommended for testing)
+### Option 1 — `console` (Agents Playground, audio-only)
+Best for quick testing without video.
 
 ```bash
-python console.py
+python agent.py console
 ```
+Automatically generates a token, starts the worker, and opens **https://agents-playground.livekit.io** in your browser.  
+Click the microphone button and start talking to Clara.
 
-This will:
-1. Generate a participant token from your `.env` credentials
-2. Start `agent.py dev` in the background
-3. Open the **LiveKit Agents Playground** in your browser with everything pre-filled
-4. Shut the agent down cleanly when you press **Ctrl+C**
+---
 
-### Option B — Manual
+### Option 2 — `meet` (LiveKit Meet — full video UI, best for recording a demo)
 
 ```bash
-# Development mode — connects to a single room for testing
-python agent.py dev
+python agent.py meet
+```
+Same as console but opens **https://meet.livekit.io** instead.  
+You get a full video-conference UI — ideal for screen-recording a demo.
 
-# Production worker mode — listens for new rooms and auto-assigns jobs
+---
+
+### Option 3 — `dev` (headless worker, bring your own UI)
+
+```bash
+python agent.py dev
+```
+Starts the worker and waits for participants to join any room.  
+Connect from the [Agents Playground](https://agents-playground.livekit.io) manually with your own token.
+
+---
+
+### Option 4 — `start` (production)
+
+```bash
 python agent.py start
 ```
 
-Then open the [LiveKit Agents Playground](https://agents-playground.livekit.io/),  
-paste your LiveKit URL + key/secret, and start talking.
+---
+
+## Example conversation
+
+```
+Clara:  Hi! I'm Clara, the voice receptionist at City Health Clinic.
+        I can help you register, book appointments, reschedule, or cancel.
+        How can I help you today?
+
+You:    I'd like to book an appointment.
+
+Clara:  Of course! Could I get your email address to look up your account?
+
+You:    I'm not registered yet.
+
+Clara:  No problem! I'll register you first. What's your full name?
+
+You:    John Smith.
+
+Clara:  And your email address?
+
+You:    john@example.com
+
+Clara:  Great. And your phone number?
+
+You:    555-1234
+
+Clara:  Perfect, you're registered, John! Now for your appointment —
+        we offer General Consultation, Follow-up Visit, Specialist Consultation,
+        Dental Checkup, and Eye Exam. Which would you like?
+
+You:    General Consultation with Dr. Smith on May 25th.
+
+Clara:  Let me check availability... Dr. Smith has openings at
+        9 AM, 10 AM, 11 AM, 2 PM, 3 PM, and 4 PM on May 25th.
+        Which time works for you?
+
+You:    10 in the morning.
+
+Clara:  Just to confirm: General Consultation with Dr. Smith on May 25th at 10 AM.
+        Shall I go ahead and book that?
+
+You:    Yes please.
+
+Clara:  Appointment confirmed! Your confirmation ID is A3F9B2C1.
+        Please save that ID in case you need to reschedule or cancel.
+```
 
 ---
 
@@ -99,93 +143,19 @@ paste your LiveKit URL + key/secret, and start talking.
 
 ```
 livekit-ai-voice-agent/
-├── agent.py          ← Main agent (edit this)
-├── requirements.txt  ← Python dependencies
-├── .env.example      ← Credential template
-└── .env              ← Your secrets (never commit this)
+  agent.py          <- Main agent (all tools + launcher logic)
+  data.json         <- Auto-created: stores patients and appointments
+  requirements.txt
+  .env.example
+  .env              <- Your secrets (gitignored)
 ```
 
 ---
 
-## Customising the agent
+## Customising
 
-### Change the persona
-
-Edit `SYSTEM_PROMPT` near the top of `agent.py`:
-
-```python
-SYSTEM_PROMPT = """
-You are a sarcastic but helpful assistant named Max.
-...
-"""
-```
-
-### Switch models or voices
-
-```python
-STT_MODEL = "nova-3"       # or "nova-2", "base", etc.
-LLM_MODEL = "gpt-4o-mini"  # or "gpt-4o" for higher quality
-TTS_VOICE  = "nova"        # alloy | echo | fable | onyx | nova | shimmer
-```
-
-### Add a tool
-
-Add a method to `VoiceAgent` and decorate it with `@function_tool`.  
-The LLM reads the docstring and type annotations to know when and how to call it.
-
-```python
-from livekit.agents import function_tool
-
-class VoiceAgent(Agent):
-    ...
-
-    @function_tool
-    async def get_weather(self, city: str) -> str:
-        """
-        Return the current weather for a city.
-
-        Args:
-            city: City name, e.g. 'London' or 'Tokyo'.
-        """
-        # Call your weather API here
-        return f"It's 22 °C and sunny in {city}."
-```
-
-### Use a different STT provider
-
-```python
-# Swap Deepgram for OpenAI Whisper:
-from livekit.plugins import openai as lk_openai
-
-session = AgentSession(
-    stt=lk_openai.STT(),   # uses Whisper
-    ...
-)
-```
-
----
-
-## Ideas for what to build next
-
-- **Customer support bot** — load a knowledge base and answer FAQs
-- **Language tutor** — converse in a target language and correct mistakes
-- **Voice-controlled home automation** — call smart-home APIs as tools
-- **Interview coach** — ask practice questions and give spoken feedback
-- **Meeting assistant** — join a room, transcribe, and summarise in real time
-
----
-
-## Troubleshooting
-
-| Symptom | Fix |
-|---|---|
-| `LIVEKIT_URL not set` | Ensure `.env` is in the project root and you ran `load_dotenv()` |
-| No audio in playground | Check browser mic permissions; try a different browser |
-| Agent connects but never speaks | Verify `OPENAI_API_KEY` is valid and has TTS access |
-| High latency | Switch to `gpt-4o-mini` (faster) or reduce `SYSTEM_PROMPT` length |
-
----
-
-## License
-
-MIT — use freely, attribution appreciated.
+- **Change the clinic name / persona** — edit `SYSTEM_PROMPT` in `agent.py`
+- **Add/remove services or providers** — edit `SERVICES` and `PROVIDERS` lists
+- **Add time slots** — edit `AVAILABLE_SLOTS`
+- **Swap LLM / STT / TTS** — change `LLM_MODEL`, `STT_MODEL`, `TTS_VOICE` constants
+- **Add a new tool** — define an `async def` method on `VoiceAgent` with `@function_tool`
