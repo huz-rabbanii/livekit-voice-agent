@@ -30,7 +30,7 @@ import sys
 import time
 import uuid
 import webbrowser
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -469,29 +469,30 @@ def _launch_browser_mode(open_meet: bool = False) -> None:
         .with_identity(PARTICIPANT_IDENTITY)
         .with_name(PARTICIPANT_NAME)
         .with_grants(VideoGrants(room_join=True, room=ROOM_NAME))
-        .with_ttl(TOKEN_TTL)
+        .with_ttl(timedelta(seconds=TOKEN_TTL))
         .to_jwt()
     )
 
     if open_meet:
+        # LiveKit Meet uses hash-based URL params
         browser_url = (
             f"https://meet.livekit.io"
-            f"?roomName={quote(ROOM_NAME, safe='')}"
-            f"&liveKitUrl={quote(livekit_url, safe='')}"
+            f"#liveKitUrl={quote(livekit_url, safe='')}"
             f"&token={token}"
         )
         mode_label = "LiveKit Meet  (great for screen-recording a demo)"
     else:
+        # Agents Playground
         browser_url = (
             f"https://agents-playground.livekit.io"
-            f"/#url={quote(livekit_url, safe='')}&token={token}"
+            f"#liveKitUrl={quote(livekit_url, safe='')}&token={token}"
         )
         mode_label = "LiveKit Agents Playground"
 
-    print(f"[launcher] Starting agent worker (room: {ROOM_NAME}) ...")
-    agent_proc = subprocess.Popen([sys.executable, __file__, "dev", "--room", ROOM_NAME])
+    print(f"[launcher] Starting agent worker ...")
+    agent_proc = subprocess.Popen([sys.executable, __file__, "dev"])
 
-    print(f"[launcher] Waiting {STARTUP_DELAY}s for agent to connect ...")
+    print(f"[launcher] Waiting {STARTUP_DELAY}s for agent to initialize ...")
     time.sleep(STARTUP_DELAY)
 
     print("\n" + "=" * 64)
@@ -500,6 +501,9 @@ def _launch_browser_mode(open_meet: bool = False) -> None:
     print(f"  Room     : {ROOM_NAME}")
     print(f"  Identity : {PARTICIPANT_IDENTITY}")
     print("=" * 64)
+    print(f"\n  If the browser doesn't auto-connect, copy this URL:\n")
+    print(f"  {browser_url[:120]}...")
+    print("\n" + "=" * 64)
     print("  Browser opening ... press Ctrl+C to stop the agent.\n")
     webbrowser.open(browser_url)
 
